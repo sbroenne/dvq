@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 
+import { realpathSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { Command } from 'commander';
 import {
   MAX_PAGES,
@@ -94,7 +97,19 @@ export async function runCli(argv = process.argv.slice(2)): Promise<void> {
   await createProgram().parseAsync(argv, { from: 'user' });
 }
 
-if (import.meta.main) {
+export function isCliEntrypoint(
+  metaUrl: string,
+  argv: readonly string[] = process.argv,
+): boolean {
+  const entrypoint = argv[1];
+  if (!entrypoint) {
+    return false;
+  }
+
+  return realpathSync(fileURLToPath(metaUrl)) === realpathSync(resolve(entrypoint));
+}
+
+if (import.meta.main ?? isCliEntrypoint(import.meta.url)) {
   runCli().catch((error: unknown) => {
     const message = error instanceof Error ? error.message : String(error);
     console.error(message);
