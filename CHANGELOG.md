@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-## [0.1.4] - 2026-03-14
+## [0.1.5] - 2026-03-14
 
 ### Added
 - Request controls for disabling formatted-value annotations and adding custom headers
@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Improved HTTP and authentication diagnostics with request URLs and targeted troubleshooting hints
 - Hardened Windows CLI packaging and bin-shim tests
+- Rolled forward from the failed `0.1.4` publish attempt after fixing a CI-only lint issue in `src/lib.test.ts`
 
 ## [1.0.0] - TBD
 

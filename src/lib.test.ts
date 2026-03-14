@@ -4,7 +4,6 @@ import * as path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   API_PATH,
-  AZ_LOGIN_GUIDANCE,
   MAX_PAGES,
   ODataError,
   REQUIRED_DATAVERSE_URL_ERROR,
