@@ -1,0 +1,38 @@
+# Build and tooling
+dvq-bundle.cjs
+*.map
+.eslintignore
+.prettierrc
+tsconfig.json
+vitest.config.ts
+eslint.config.js
+
+# Testing
+*.test.ts
+*.spec.ts
+__tests__/
+coverage/
+.nyc_output/
+*.lcov
+
+# CI/CD and team infrastructure
+.github/
+.squad/
+.copilot/
+.git/
+.gitignore
+.gitattributes
+
+# Development
+node_modules/
+.env
+.env.local
+*.log
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Misc
+.DS_Store
+Thumbs.db
