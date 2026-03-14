@@ -207,9 +207,9 @@ Explicit exclude list for `npm pack`. Contains:
   - If unset → CLI exits with clear error message
 
 ### In CI/Release
-- `NPM_TOKEN` — GitHub Actions secret for npm authentication (if using static token)
-  - Current workflow also emits `npm publish --provenance`
-  - Preferred future state: npm trusted publishing via `id-token: write` permission (no long-lived token needed)
+- No long-lived npm token is required when npm trusted publishing is configured for this repository
+  - Current workflow publishes with `npm publish --provenance --access public`
+  - GitHub Actions needs `id-token: write` permission and npm trusted publishing enabled for `sbroenne/dvq`
 
 ---
 
@@ -231,10 +231,10 @@ The release pipeline is production-ready when:
 
 | Risk | Mitigation |
 |------|-----------|
-| **Unexpected files leak into npm** | Explicit `files` allowlist + Gate 2 tarball verification + code review before PR merge |
-| **Tarball accidentally includes `.squad/`** | Explicit `.npmignore` + Gate 2 `npm pack` verification |
+| **Unexpected files leak into npm** | Explicit `files` allowlist + release tarball verification + code review before PR merge |
+| **Tarball accidentally includes `.squad/`** | Explicit `.npmignore` + release `npm pack` verification |
 | **Broken env var requirement causes UX issues** | Clear error message when `DATAVERSE_URL` missing; documented in README |
-| **npm publish hangs or fails silently** | Gate 2 post-publish verification checks npm registry visibility |
+| **npm publish hangs or fails silently** | Post-publish verification checks npm registry visibility |
 | **Known-vulnerable dependency lands in PR** | Dependabot + dependency review on pull requests |
 | **Static security issue ships unnoticed** | CodeQL scans pushes, PRs, and weekly scheduled analysis |
 | **Tests fail on different Node versions** | Test matrix across Node 20, 22, 24 in CI |
