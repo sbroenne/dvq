@@ -11,8 +11,11 @@ import {
   buildHeaders,
   buildUrl,
   fetchOData,
+  formatAuthFailureMessage,
+  formatODataErrorMessage,
   getDataverseScope,
   getDataverseUrl,
+  getODataErrorHint,
   getToken,
   queryAll,
   readQueryFile,
@@ -150,6 +153,22 @@ describe('buildHeaders', () => {
       'OData.Community.Display.V1.FormattedValue',
     );
   });
+
+  it('omits the Prefer header when formatted values are disabled', () => {
+    const headers = buildHeaders('tok', { includeFormattedValues: false });
+    expect(headers.Prefer).toBeUndefined();
+  });
+
+  it('merges custom headers on top of the defaults', () => {
+    const headers = buildHeaders('tok', {
+      headers: {
+        ConsistencyLevel: 'eventual',
+      },
+    });
+
+    expect(headers.Authorization).toBe('Bearer tok');
+    expect(headers.ConsistencyLevel).toBe('eventual');
+  });
 });
 
 describe('getToken', () => {
@@ -179,7 +198,30 @@ describe('getToken', () => {
         baseUrl: 'https://example.crm.dynamics.com',
         credential,
       }),
-    ).rejects.toThrow(AZ_LOGIN_GUIDANCE);
+    ).rejects.toThrow(
+      formatAuthFailureMessage('https://example.crm.dynamics.com'),
+    );
+  });
+
+  it('writes auth trace messages when a logger is provided', async () => {
+    const credential = {
+      getToken: vi.fn().mockResolvedValue({ token: 'abc123' }),
+    };
+    const logger = vi.fn();
+
+    await getToken({
+      baseUrl: 'https://example.crm.dynamics.com',
+      credential,
+      logger,
+    });
+
+    expect(logger).toHaveBeenCalledWith(
+      'Auth target: https://example.crm.dynamics.com',
+    );
+    expect(logger).toHaveBeenCalledWith(
+      'Auth scope: https://example.crm.dynamics.com/.default',
+    );
+    expect(logger).toHaveBeenCalledWith('Token acquired successfully');
   });
 });
 
@@ -187,13 +229,41 @@ describe('ODataError', () => {
   it('stores the status code and formats the message', () => {
     const error = new ODataError(404, 'Entity not found');
     expect(error.statusCode).toBe(404);
-    expect(error.message).toBe('HTTP 404: Entity not found');
+    expect(error.message).toBe(
+      formatODataErrorMessage(404, 'Entity not found'),
+    );
     expect(error.name).toBe('ODataError');
+  });
+
+  it('stores detail, hint, and request URL when provided', () => {
+    const error = new ODataError(400, 'Broken query', {
+      hint: 'Check the query.',
+      requestUrl: 'https://example.crm.dynamics.com/api/data/v9.2/accounts',
+    });
+
+    expect(error.detail).toBe('Broken query');
+    expect(error.hint).toBe('Check the query.');
+    expect(error.requestUrl).toBe(
+      'https://example.crm.dynamics.com/api/data/v9.2/accounts',
+    );
   });
 
   it('is an instance of Error', () => {
     const error = new ODataError(500, 'Server error');
     expect(error).toBeInstanceOf(Error);
+  });
+});
+
+describe('getODataErrorHint', () => {
+  it('returns a header-specific hint for the Dataverse header failure', () => {
+    expect(
+      getODataErrorHint(400, 'Both header name and value should be specified.'),
+    ).toContain('formatted values disabled');
+  });
+
+  it('returns an auth hint for 401/403 responses', () => {
+    expect(getODataErrorHint(401, 'Unauthorized')).toContain('az login');
+    expect(getODataErrorHint(403, 'Forbidden')).toContain('az login');
   });
 });
 
@@ -226,7 +296,12 @@ describe('fetchOData', () => {
 
     await expect(
       fetchOData('https://example.com/api/data/v9.2/bad', 'tok'),
-    ).rejects.toThrow(ODataError);
+    ).rejects.toMatchObject({
+      name: 'ODataError',
+      message: formatODataErrorMessage(404, 'Resource not found', {
+        requestUrl: 'https://example.com/api/data/v9.2/bad',
+      }),
+    });
   });
 
   it('throws ODataError with the status text when the body is not JSON', async () => {
@@ -242,6 +317,24 @@ describe('fetchOData', () => {
     ).rejects.toThrow('HTTP 500');
   });
 
+  it('adds a targeted hint for the Dataverse header failure', async () => {
+    const errorBody = {
+      error: {
+        message: 'Both header name and value should be specified.',
+      },
+    };
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(JSON.stringify(errorBody), {
+        status: 400,
+        statusText: 'Bad Request',
+      }),
+    );
+
+    await expect(
+      fetchOData('https://example.com/api/data/v9.2/msp_accountteams', 'tok'),
+    ).rejects.toThrow('formatted values disabled');
+  });
+
   it('sends the expected headers', async () => {
     const fetchSpy = vi
       .spyOn(globalThis, 'fetch')
@@ -255,6 +348,42 @@ describe('fetchOData', () => {
     >;
     expect(callHeaders.Authorization).toBe('Bearer my-token');
     expect(callHeaders['OData-Version']).toBe('4.0');
+  });
+
+  it('passes request options through to the HTTP headers', async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({}), { status: 200 }));
+
+    await fetchOData('https://example.com/test', 'my-token', {
+      includeFormattedValues: false,
+      headers: {
+        ConsistencyLevel: 'eventual',
+      },
+    });
+
+    const callHeaders = fetchSpy.mock.calls[0]?.[1]?.headers as Record<
+      string,
+      string
+    >;
+    expect(callHeaders.Prefer).toBeUndefined();
+    expect(callHeaders.ConsistencyLevel).toBe('eventual');
+  });
+
+  it('writes request trace messages when a logger is provided', async () => {
+    const logger = vi.fn();
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(JSON.stringify({ value: [] }), { status: 200 }),
+    );
+
+    await fetchOData('https://example.com/test', 'my-token', { logger });
+
+    expect(logger).toHaveBeenCalledWith('GET https://example.com/test');
+    expect(logger).toHaveBeenCalledWith(
+      expect.stringContaining('"Authorization":"<redacted>"'),
+    );
+    expect(logger).toHaveBeenCalledWith('Response 200 ');
+    expect(logger).toHaveBeenCalledWith('Response body parsed successfully');
   });
 });
 
@@ -334,6 +463,34 @@ describe('queryAll', () => {
     ).rejects.toThrow(
       `Query exceeded pagination safety cap (${MAX_PAGES} pages). Narrow the filter or increase MAX_PAGES.`,
     );
+  });
+
+  it('writes pagination trace messages when a logger is provided', async () => {
+    const page1 = {
+      value: [{ id: 1 }],
+      '@odata.nextLink':
+        'https://example.com/api/data/v9.2/accounts?$skiptoken=2',
+    };
+    const page2 = { value: [{ id: 2 }] };
+    const logger = vi.fn();
+
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(page1), { status: 200, statusText: 'OK' }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(page2), { status: 200, statusText: 'OK' }),
+      );
+
+    await queryAll('accounts', 'tok', 'https://example.crm.dynamics.com', process.env, {
+      logger,
+    });
+
+    expect(logger).toHaveBeenCalledWith('Starting paged query for accounts');
+    expect(logger).toHaveBeenCalledWith('Fetching page 1');
+    expect(logger).toHaveBeenCalledWith('Following @odata.nextLink');
+    expect(logger).toHaveBeenCalledWith('Fetching page 2');
+    expect(logger).toHaveBeenCalledWith('Pagination complete after 2 page(s)');
   });
 });
 
