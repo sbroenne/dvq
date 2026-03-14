@@ -24,11 +24,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
       
-      - name: Run full test suite
-        run: npm test
-      
       - name: Build
         run: npm run build --if-present
+
+      - name: Run full test suite
+        run: npm test
       
       - name: Create tarball and verify content
         run: |

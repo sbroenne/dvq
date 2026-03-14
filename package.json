@@ -1,6 +1,6 @@
 {
   "name": "@sbroenne/dvq",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "CLI for querying Dataverse OData endpoints with Azure CLI credentials",
   "type": "module",
   "bin": {
