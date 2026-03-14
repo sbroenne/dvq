@@ -31,8 +31,28 @@ function normalizeOptionalValue(value: string | undefined): string | undefined {
   return trimmed ? trimmed : undefined;
 }
 
+function trimTrailingSlashes(value: string): string {
+  let end = value.length;
+
+  while (end > 0 && value[end - 1] === '/') {
+    end -= 1;
+  }
+
+  return value.slice(0, end);
+}
+
+function trimLeadingSlashes(value: string): string {
+  let start = 0;
+
+  while (start < value.length && value[start] === '/') {
+    start += 1;
+  }
+
+  return value.slice(start);
+}
+
 function normalizeBaseUrl(value: string): string {
-  return value.replace(/\/+$/, '');
+  return trimTrailingSlashes(value);
 }
 
 export function resolveDataverseUrl(
@@ -70,7 +90,7 @@ export function buildUrl(
   baseUrl?: string,
   env: NodeJS.ProcessEnv = process.env,
 ): string {
-  const queryPath = odataPath.replace(/^\/+/, '');
+  const queryPath = trimLeadingSlashes(odataPath);
   return `${getDataverseUrl(baseUrl, env)}${API_PATH}${queryPath}`;
 }
 

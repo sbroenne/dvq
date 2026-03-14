@@ -48,6 +48,12 @@ describe('resolveDataverseUrl', () => {
     ).toBe('https://contoso.crm.dynamics.com');
   });
 
+  it('removes repeated trailing slashes from an explicit URL', () => {
+    expect(
+      resolveDataverseUrl({ url: 'https://contoso.crm.dynamics.com////' }),
+    ).toBe('https://contoso.crm.dynamics.com');
+  });
+
   it('falls back to DATAVERSE_URL from the environment', () => {
     expect(
       resolveDataverseUrl({
@@ -111,6 +117,11 @@ describe('buildUrl', () => {
 
   it('drops any leading slash from the OData path', () => {
     const url = buildUrl('/WhoAmI', 'https://custom.crm.dynamics.com/');
+    expect(url).toBe('https://custom.crm.dynamics.com/api/data/v9.2/WhoAmI');
+  });
+
+  it('drops repeated leading slashes from the OData path', () => {
+    const url = buildUrl('////WhoAmI', 'https://custom.crm.dynamics.com/');
     expect(url).toBe('https://custom.crm.dynamics.com/api/data/v9.2/WhoAmI');
   });
 
