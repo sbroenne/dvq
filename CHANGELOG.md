@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.1.4] - 2026-03-14
+
+### Added
+- Request controls for disabling formatted-value annotations and adding custom headers
+- Verbose tracing for auth, requests, and pagination with sanitized header logging
+
+### Changed
+- Improved HTTP and authentication diagnostics with request URLs and targeted troubleshooting hints
+- Hardened Windows CLI packaging and bin-shim tests
+
 ## [1.0.0] - TBD
 
 ### Added
