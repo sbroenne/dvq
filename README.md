@@ -45,6 +45,10 @@ export DATAVERSE_URL="https://yourorg.crm.dynamics.com"
 
 You can also pass `--url` on the CLI instead of setting `DATAVERSE_URL`.
 
+By default, `dvq` requests Dataverse formatted-value annotations so OptionSet labels and other display values are present in responses. Use `--no-formatted-values` to disable that default, or `--header` to add custom request headers when debugging environment-specific behavior.
+
+Use `--verbose` to emit request tracing to stderr. This is useful when you need to see the exact request URL, pagination flow, and sanitized headers without mixing trace output into the JSON response on stdout.
+
 ## CLI quick start
 
 The query is an OData path relative to `/api/data/v9.2/`.
@@ -77,6 +81,24 @@ Verify auth and connectivity:
 dvq --whoami
 ```
 
+Disable formatted-value annotations for a leaner payload or to isolate header-related issues:
+
+```bash
+dvq --url "https://yourorg.crm.dynamics.com" --no-formatted-values "accounts?$top=5"
+```
+
+Add custom request headers:
+
+```bash
+dvq --url "https://yourorg.crm.dynamics.com" -H "ConsistencyLevel: eventual" "accounts?$top=5"
+```
+
+Trace auth, request, and pagination flow to stderr:
+
+```bash
+dvq --verbose --url "https://yourorg.crm.dynamics.com" --all "accounts?$select=name&$top=5"
+```
+
 Follow `@odata.nextLink` pages automatically:
 
 ```bash
@@ -95,6 +117,9 @@ dvq [options] [query]
 | `-f, --file` | `<path>` | Read the OData path from a file |
 | `-a, --all` | — | Follow `@odata.nextLink` pages up to the built-in safety cap |
 | `-u, --url` | `<url>` | Use this Dataverse base URL instead of `DATAVERSE_URL` |
+| `-v, --verbose` | — | Print auth/request/pagination tracing to stderr |
+| `--no-formatted-values` | — | Do not send the default `Prefer` header for formatted values |
+| `-H, --header` | `<name:value>` | Add a request header; may be repeated |
 | `--whoami` | — | Call `WhoAmI` and print the response |
 | `--version` | — | Print the package version |
 | `--help` | — | Show help text |
@@ -104,6 +129,8 @@ Notes:
 - If neither `[query]` nor `--file` is given, `dvq` reads stdin when input is piped.
 - Without `--all`, the CLI prints the first JSON response object exactly as returned by Dataverse.
 - With `--all`, the CLI prints a JSON array aggregated across pages.
+- By default, `dvq` sends `Prefer: odata.include-annotations="OData.Community.Display.V1.FormattedValue"`.
+- `--verbose` writes tracing to stderr and never prints the bearer token.
 
 ## Library API
 
@@ -141,10 +168,10 @@ console.log(rows);
 | `resolveDataverseUrl`, `getDataverseUrl` | Resolve the Dataverse base URL from an explicit value or `DATAVERSE_URL` |
 | `getDataverseScope` | Build the `/.default` scope for Azure auth |
 | `buildUrl` | Build a full Dataverse Web API URL from an OData path |
-| `buildHeaders` | Create request headers for Dataverse JSON calls |
+| `buildHeaders` | Create request headers for Dataverse JSON calls, with optional annotation/header overrides |
 | `getToken` | Acquire an access token using `AzureCliCredential` |
-| `fetchOData` | Execute one HTTP request and parse the JSON response |
-| `queryAll` | Follow paginated `@odata.nextLink` responses and return one array |
+| `fetchOData` | Execute one HTTP request and parse the JSON response, with optional request overrides |
+| `queryAll` | Follow paginated `@odata.nextLink` responses and return one array, with optional request overrides |
 | `readQueryFile`, `readStdin` | CLI-oriented input helpers |
 | `ODataError` | Error type for non-2xx HTTP responses |
 | `API_PATH`, `DEFAULT_API_PATH`, `MAX_PAGES` | Public constants used by the helpers |
@@ -162,9 +189,18 @@ Authentication failure:
 ```text
 Failed to get token. Run:
   az login
+Target: https://yourorg.crm.dynamics.com
 ```
 
 `queryAll()` stops after `MAX_PAGES` pages and throws if the safety cap is exceeded.
+
+Dataverse request failures now include the request URL and, when possible, a targeted troubleshooting hint. Example for the header-related 400 seen on some entity reads:
+
+```text
+HTTP 400: Both header name and value should be specified.
+URL: https://yourorg.crm.dynamics.com/api/data/v9.2/msp_accountteams?$top=5
+Hint: Dataverse rejected a request header. Retry with formatted values disabled to isolate the default Prefer header, and review any custom headers.
+```
 
 ## Contributing
 
