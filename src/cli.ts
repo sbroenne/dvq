@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { Command } from 'commander';
 import {
@@ -95,11 +94,7 @@ export async function runCli(argv = process.argv.slice(2)): Promise<void> {
   await createProgram().parseAsync(argv, { from: 'user' });
 }
 
-const isEntrypoint = process.argv[1]
-  ? fileURLToPath(import.meta.url) === process.argv[1]
-  : false;
-
-if (isEntrypoint) {
+if (import.meta.main) {
   runCli().catch((error: unknown) => {
     const message = error instanceof Error ? error.message : String(error);
     console.error(message);

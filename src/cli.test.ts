@@ -1,6 +1,8 @@
 import { execFile } from 'node:child_process';
 import { createRequire } from 'node:module';
-import { resolve } from 'node:path';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { describe, expect, it } from 'vitest';
 import { createProgram } from './cli.js';
@@ -40,6 +42,30 @@ describe('compiled CLI entrypoint', () => {
     const { stdout } = await exec('node', [cli, '--version']);
     expect(stdout.trim()).toBe(PACKAGE_VERSION);
   });
+
+  it('prints version through the bin shim', async () => {
+    const tempDir = mkdtempSync(join(tmpdir(), 'dvq-pack-test-'));
+    try {
+      const { stdout: tarball } = await exec('npm', ['pack', '--quiet'], {
+        cwd: process.cwd(),
+      });
+      const tarballName = tarball.trim().split('\n').pop();
+      if (!tarballName) {
+        throw new Error('npm pack did not return a tarball name');
+      }
+
+      await exec('npm', ['init', '-y'], { cwd: tempDir });
+      await exec('npm', ['install', '--silent', resolve(process.cwd(), tarballName)], {
+        cwd: tempDir,
+      });
+
+      const bin = resolve(tempDir, 'node_modules', '.bin', 'dvq');
+      const { stdout } = await exec(bin, ['--version']);
+      expect(stdout.trim()).toBe(PACKAGE_VERSION);
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  }, 15000);
 
   it('exits with the required DATAVERSE_URL error from dist/cli.js', async () => {
     await expect(exec('node', [cli, 'query'])).rejects.toMatchObject({
