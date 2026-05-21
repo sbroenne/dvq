@@ -103,7 +103,9 @@ export function formatODataErrorMessage(
 }
 
 export function formatAuthFailureMessage(baseUrl: string): string {
-  return [AZ_LOGIN_GUIDANCE, formatDiagnosticBlock('Target', baseUrl)].join('\n');
+  return [AZ_LOGIN_GUIDANCE, formatDiagnosticBlock('Target', baseUrl)].join(
+    '\n',
+  );
 }
 
 function normalizeOptionalValue(value: string | undefined): string | undefined {
@@ -304,7 +306,10 @@ export async function queryAll(
       results.push(...data.value);
       trace(options.logger, `Collected ${results.length} rows total`);
     } else {
-      trace(options.logger, 'Received a non-collection response; returning wrapped result');
+      trace(
+        options.logger,
+        'Received a non-collection response; returning wrapped result',
+      );
       return [data];
     }
 

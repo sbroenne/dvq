@@ -481,9 +481,15 @@ describe('queryAll', () => {
         new Response(JSON.stringify(page2), { status: 200, statusText: 'OK' }),
       );
 
-    await queryAll('accounts', 'tok', 'https://example.crm.dynamics.com', process.env, {
-      logger,
-    });
+    await queryAll(
+      'accounts',
+      'tok',
+      'https://example.crm.dynamics.com',
+      process.env,
+      {
+        logger,
+      },
+    );
 
     expect(logger).toHaveBeenCalledWith('Starting paged query for accounts');
     expect(logger).toHaveBeenCalledWith('Fetching page 1');

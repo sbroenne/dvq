@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.1.6] - 2026-05-21
+
+### Changed
+- Updated npm dependencies to their latest available versions
+- Applied formatting updates from the newer Prettier release
+
+### Fixed
+- Made Prettier format scripts work on Windows by using cross-platform glob quoting
+
 ## [0.1.5] - 2026-03-14
 
 ### Added
