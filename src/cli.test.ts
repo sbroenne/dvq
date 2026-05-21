@@ -28,7 +28,10 @@ function execNpm(args: string[], cwd: string): ReturnType<typeof exec> {
   return exec(fallbackExecutable, args, { cwd });
 }
 
-function execPackagedBin(binPath: string, args: string[]): ReturnType<typeof exec> {
+function execPackagedBin(
+  binPath: string,
+  args: string[],
+): ReturnType<typeof exec> {
   if (process.platform === 'win32') {
     const command = `"${binPath}" ${args.join(' ')}`;
     return execWithShell(command);
@@ -94,7 +97,10 @@ describe('compiled CLI entrypoint', () => {
   it('prints version through the bin shim', async () => {
     const tempDir = mkdtempSync(join(tmpdir(), 'dvq-pack-test-'));
     try {
-      const { stdout: tarball } = await execNpm(['pack', '--quiet'], process.cwd());
+      const { stdout: tarball } = await execNpm(
+        ['pack', '--quiet'],
+        process.cwd(),
+      );
       const tarballName = toText(tarball).trim().split('\n').pop();
       if (!tarballName) {
         throw new Error('npm pack did not return a tarball name');

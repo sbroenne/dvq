@@ -30,8 +30,7 @@ type CliOptions = {
   whoami?: boolean;
 };
 
-const INVALID_HEADER_GUIDANCE =
-  'Invalid header. Use the form "Name: Value".';
+const INVALID_HEADER_GUIDANCE = 'Invalid header. Use the form "Name: Value".';
 
 const HELP_AFTER = `
 Environment:
@@ -55,7 +54,9 @@ function collectHeader(value: string, previous: string[] = []): string[] {
   return previous;
 }
 
-export function parseHeaders(headerValues: string[] = []): Record<string, string> {
+export function parseHeaders(
+  headerValues: string[] = [],
+): Record<string, string> {
   return headerValues.reduce<Record<string, string>>((headers, headerValue) => {
     const separatorIndex = headerValue.indexOf(':');
     if (separatorIndex <= 0) {
@@ -158,7 +159,11 @@ export function createProgram(version = VERSION): Command {
       return;
     }
 
-    const data = await fetchOData(buildUrl(query, baseUrl), token, requestOptions);
+    const data = await fetchOData(
+      buildUrl(query, baseUrl),
+      token,
+      requestOptions,
+    );
     console.log(JSON.stringify(data, null, 2));
   });
 
@@ -178,7 +183,9 @@ export function isCliEntrypoint(
     return false;
   }
 
-  return realpathSync(fileURLToPath(metaUrl)) === realpathSync(resolve(entrypoint));
+  return (
+    realpathSync(fileURLToPath(metaUrl)) === realpathSync(resolve(entrypoint))
+  );
 }
 
 if (import.meta.main ?? isCliEntrypoint(import.meta.url)) {
